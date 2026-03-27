@@ -5,8 +5,12 @@
 ═══════════════════════════════════════════════════════════ */
 const W = 800, H = 500;
 const SEAL_SPEED     = 4;
-const MAX_FISH       = 14;
-const SPAWN_INTERVAL = 1800; // ms between spawns
+const MAX_FISH               = 18;
+const SPAWN_INTERVAL         = 900;  // ms between fish spawns
+const POWERUP_SPAWN_INTERVAL = 7000; // ms between power-up spawns
+const MAX_POWERUPS           = 2;
+const SPEED_BOOST_MULTIPLIER = 2;
+const MAGNET_RANGE           = 130;
 const PARTICLE_LIFETIME = 700; // ms
 
 const FISH_TYPES = [
@@ -15,6 +19,13 @@ const FISH_TYPES = [
   { name: 'Pufferfish',emoji: '🐡', w: 50,  h: 38,  points: 3,  speed: 1.6, weight: 20 },
   { name: 'Prawn',     emoji: '🦐', w: 60,  h: 42,  points: 5,  speed: 2.8, weight: 12 },
   { name: 'Octopus',   emoji: '🐙', w: 76,  h: 58,  points: 10, speed: 1.1, weight: 5  },
+];
+
+const POWERUP_TYPES = [
+  { name: 'Speed Boost', emoji: '⚡', color: '#ffff44', duration: 5000, weight: 35, effect: 'speed'  },
+  { name: 'Size Up',     emoji: '🔴', color: '#ff7777', duration: 5000, weight: 30, effect: 'sizeUp' },
+  { name: '2× Points',   emoji: '⭐', color: '#ffd700', duration: 6000, weight: 25, effect: 'double' },
+  { name: 'Magnet',      emoji: '🧲', color: '#cc88ff', duration: 5000, weight: 10, effect: 'magnet' },
 ];
 
 const THEMES = [
@@ -57,6 +68,9 @@ let bgCustomImage = null;
 
 let fishes    = [];
 let particles = [];
+let powerups  = [];
+let powerupAccum   = 0;
+let activeEffects  = {}; // { effectName: { timeLeft, duration } }
 
 const catchLog   = [];
 const catchLogEl = document.getElementById('catch-log');
@@ -127,6 +141,22 @@ function spawnFish() {
   fishes.push({ type, tidx, x, y, dx, dy, w: type.w, h: type.h, wobble: Math.random()*Math.PI*2 });
 }
 
+function spawnPowerup() {
+  if (powerups.length >= MAX_POWERUPS) return;
+  const type  = weightedRandom(POWERUP_TYPES);
+  const pw = 36, ph = 36;
+  const edge  = Math.floor(Math.random() * 4);
+  let x, y, dx, dy;
+  const speed = 1.5;
+  switch (edge) {
+    case 0: x = Math.random()*(W-pw); y = -ph; dx = (Math.random()-0.5); dy = speed; break;
+    case 1: x = Math.random()*(W-pw); y = H;   dx = (Math.random()-0.5); dy = -speed; break;
+    case 2: x = -pw; y = Math.random()*(H-ph); dx = speed; dy = (Math.random()-0.5); break;
+    default: x = W; y = Math.random()*(H-ph); dx = -speed; dy = (Math.random()-0.5); break;
+  }
+  powerups.push({ type, x, y, dx, dy, w: pw, h: ph, wobble: Math.random()*Math.PI*2 });
+}
+
 /* ═══════════════════════════════════════════════════════════
    PARTICLES
 ═══════════════════════════════════════════════════════════ */
@@ -148,10 +178,11 @@ function spawnParticles(cx, cy, emoji) {
 ═══════════════════════════════════════════════════════════ */
 function updateSeal() {
   let moved = false;
-  if (keys['ArrowLeft'])  { seal.x -= SEAL_SPEED; seal.facing = -1; moved = true; }
-  if (keys['ArrowRight']) { seal.x += SEAL_SPEED; seal.facing =  1; moved = true; }
-  if (keys['ArrowUp'])    { seal.y -= SEAL_SPEED; moved = true; }
-  if (keys['ArrowDown'])  { seal.y += SEAL_SPEED; moved = true; }
+  const spd = SEAL_SPEED * (activeEffects.speed ? SPEED_BOOST_MULTIPLIER : 1);
+  if (keys['ArrowLeft'])  { seal.x -= spd; seal.facing = -1; moved = true; }
+  if (keys['ArrowRight']) { seal.x += spd; seal.facing =  1; moved = true; }
+  if (keys['ArrowUp'])    { seal.y -= spd; moved = true; }
+  if (keys['ArrowDown'])  { seal.y += spd; moved = true; }
   seal.x = Math.max(0, Math.min(W - seal.w, seal.x));
   seal.y = Math.max(0, Math.min(H - seal.h, seal.y));
 }
@@ -170,17 +201,24 @@ function checkCollisions() {
   const pad = 6;
   for (let i = fishes.length - 1; i >= 0; i--) {
     const f = fishes[i];
-    if (
+    let caught = (
       seal.x + pad       < f.x + f.w &&
       seal.x + seal.w - pad > f.x     &&
       seal.y + pad       < f.y + f.h &&
       seal.y + seal.h - pad > f.y
-    ) {
-      score       += f.type.points;
+    );
+    if (!caught && activeEffects.magnet) {
+      const fdx = (f.x + f.w/2) - (seal.x + seal.w/2);
+      const fdy = (f.y + f.h/2) - (seal.y + seal.h/2);
+      caught = Math.sqrt(fdx*fdx + fdy*fdy) < MAGNET_RANGE;
+    }
+    if (caught) {
+      const pts = f.type.points * (activeEffects.double ? 2 : 1);
+      score       += pts;
       caughtCount += 1;
       document.getElementById('score').textContent  = score;
       document.getElementById('caught').textContent = caughtCount;
-      addCatchLog(`+${f.type.points} ${f.type.emoji} ${f.type.name}`);
+      addCatchLog(`+${pts} ${f.type.emoji} ${f.type.name}`);
       spawnParticles(f.x + f.w/2, f.y + f.h/2, f.type.emoji);
       fishes.splice(i, 1);
     }
@@ -195,6 +233,63 @@ function updateParticles(dt) {
     p.y += p.vy;
     p.vy += 0.05; // gravity
     if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function updatePowerupItems() {
+  for (let i = powerups.length - 1; i >= 0; i--) {
+    const p = powerups[i];
+    p.x += p.dx;
+    p.y += p.dy;
+    p.wobble += 0.05;
+    if (p.x + p.w < -20 || p.x > W + 20 || p.y + p.h < -20 || p.y > H + 20) {
+      powerups.splice(i, 1);
+    }
+  }
+}
+
+function updateActiveEffects(dt) {
+  for (const effect of Object.keys(activeEffects)) {
+    activeEffects[effect].timeLeft -= dt;
+    if (activeEffects[effect].timeLeft <= 0) {
+      if (effect === 'sizeUp') {
+        const cx = seal.x + seal.w / 2;
+        const cy = seal.y + seal.h / 2;
+        seal.w = 64; seal.h = 48;
+        seal.x = Math.max(0, Math.min(W - seal.w, cx - seal.w / 2));
+        seal.y = Math.max(0, Math.min(H - seal.h, cy - seal.h / 2));
+      }
+      delete activeEffects[effect];
+    }
+  }
+}
+
+function applyPowerup(type) {
+  activeEffects[type.effect] = { timeLeft: type.duration, duration: type.duration };
+  if (type.effect === 'sizeUp') {
+    const cx = seal.x + seal.w / 2;
+    const cy = seal.y + seal.h / 2;
+    seal.w = 96; seal.h = 72;
+    seal.x = Math.max(0, Math.min(W - seal.w, cx - seal.w / 2));
+    seal.y = Math.max(0, Math.min(H - seal.h, cy - seal.h / 2));
+  }
+  addCatchLog(`✨ ${type.name}!`);
+}
+
+function checkPowerupCollisions() {
+  const pad = 4;
+  for (let i = powerups.length - 1; i >= 0; i--) {
+    const p = powerups[i];
+    if (
+      seal.x + pad         < p.x + p.w &&
+      seal.x + seal.w - pad > p.x       &&
+      seal.y + pad         < p.y + p.h &&
+      seal.y + seal.h - pad > p.y
+    ) {
+      applyPowerup(p.type);
+      spawnParticles(p.x + p.w / 2, p.y + p.h / 2, p.type.emoji);
+      powerups.splice(i, 1);
+    }
   }
 }
 
@@ -432,12 +527,66 @@ function drawParticles() {
   }
 }
 
+function drawPowerups() {
+  const now = Date.now();
+  for (const p of powerups) {
+    const pulse = 0.7 + 0.3 * Math.sin(now * 0.004 + p.wobble);
+    ctx.save();
+    ctx.shadowBlur  = 14 * pulse;
+    ctx.shadowColor = p.type.color;
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle   = 'rgba(0,0,0,0.45)';
+    ctx.beginPath();
+    ctx.arc(p.x + p.w / 2, p.y + p.h / 2, p.w / 2 + 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = p.type.color;
+    ctx.lineWidth   = 2;
+    ctx.globalAlpha = pulse;
+    ctx.stroke();
+    ctx.globalAlpha  = 1;
+    ctx.shadowBlur   = 0;
+    ctx.font         = '22px serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign    = 'center';
+    ctx.fillText(p.type.emoji, p.x + p.w / 2, p.y + p.h / 2);
+    ctx.restore();
+  }
+}
+
+function drawActiveEffectsHUD() {
+  const effects = Object.entries(activeEffects);
+  if (effects.length === 0) return;
+  let x = 8;
+  const y = H - 8;
+  const bw = 50, bh = 30;
+  for (const [effect, data] of effects) {
+    const type  = POWERUP_TYPES.find(t => t.effect === effect);
+    if (!type) continue;
+    const ratio = Math.max(0, data.timeLeft / data.duration);
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(x, y - bh, bw, bh);
+    ctx.fillStyle   = type.color;
+    ctx.globalAlpha = 0.9;
+    ctx.fillRect(x + 2, y - 7, (bw - 4) * ratio, 5);
+    ctx.globalAlpha  = 1;
+    ctx.font         = '18px serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign    = 'center';
+    ctx.fillText(type.emoji, x + bw / 2, y - bh / 2 - 2);
+    ctx.restore();
+    x += bw + 6;
+  }
+}
+
 function render() {
   ctx.clearRect(0, 0, W, H);
   drawBackground();
+  drawPowerups();
   drawFishes();
   drawSeal();
   drawParticles();
+  drawActiveEffectsHUD();
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -463,8 +612,9 @@ function gameLoop(ts) {
 
   const paused = settingsPanelOpen;
   if (!paused) {
-    timerAccum += dt;
-    spawnAccum += dt;
+    timerAccum   += dt;
+    spawnAccum   += dt;
+    powerupAccum += dt;
 
     if (timerAccum >= 1000) {
       timerAccum -= 1000;
@@ -478,9 +628,17 @@ function gameLoop(ts) {
       spawnFish();
     }
 
+    if (powerupAccum >= POWERUP_SPAWN_INTERVAL) {
+      powerupAccum -= POWERUP_SPAWN_INTERVAL;
+      spawnPowerup();
+    }
+
     updateSeal();
     updateFish();
+    updatePowerupItems();
+    updateActiveEffects(dt);
     checkCollisions();
+    checkPowerupCollisions();
     updateParticles(dt);
   }
 
@@ -505,8 +663,10 @@ function menuLoop(ts) {
 function startGame() {
   if (rafId) cancelAnimationFrame(rafId);
   score = 0; caughtCount = 0; timeLeft = gameDuration;
-  timerAccum = 0; spawnAccum = 0; particles = []; fishes = [];
+  timerAccum = 0; spawnAccum = 0; powerupAccum = 0;
+  particles = []; fishes = []; powerups = []; activeEffects = {};
   catchLog.length = 0; catchLogEl.textContent = '';
+  seal.w = 64; seal.h = 48; // reset size in case sizeUp was active
   seal.x = W/2 - seal.w/2; seal.y = H/2 - seal.h/2; seal.facing = 1;
   document.getElementById('score').textContent  = '0';
   document.getElementById('caught').textContent = '0';
