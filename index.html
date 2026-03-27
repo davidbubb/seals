@@ -242,6 +242,45 @@
       border-radius: 3px;
       border: 1px solid rgba(255,255,255,0.2);
     }
+
+    /* ── Seal-type / Accessory selectors ── */
+    .seal-type-btn, .accessory-btn {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 4px 6px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 600;
+      gap: 2px;
+      transition: border-color 0.15s, background 0.15s;
+      min-width: 48px;
+    }
+    .seal-type-btn:hover, .accessory-btn:hover {
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.4);
+    }
+    .seal-type-btn.active, .accessory-btn.active {
+      border-color: #4a9eff;
+      background: rgba(74,158,255,0.2);
+    }
+
+    /* ── Accessory colour dots ── */
+    .acc-color-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.25);
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+      padding: 0;
+    }
+    .acc-color-btn:hover  { border-color: rgba(255,255,255,0.7); }
+    .acc-color-btn.active { border-color: #fff; transform: scale(1.25); }
   </style>
 </head>
 <body>
@@ -274,12 +313,52 @@
         <span class="legend-item">🐡 Pufferfish = 3pts</span>
         <span class="legend-item">🦐 Prawn = 5pts</span>
         <span class="legend-item">🐙 Octopus = 10pts</span>
+        <span class="legend-item" style="color:#ffd700;">🦈 Baby Shark = 50pts!</span>
       </div>
       <div class="legend" style="justify-content:center; margin-top:2px; font-size:0.78rem; color:#aaa;">
         <span class="legend-item">⚡ Speed Boost</span>
         <span class="legend-item">🔴 Size Up</span>
         <span class="legend-item">⭐ 2× Points</span>
         <span class="legend-item">🧲 Magnet</span>
+      </div>
+
+      <!-- Seal type picker -->
+      <div style="text-align:center; margin-top:6px;">
+        <p style="font-size:0.75rem; color:#aaa; margin-bottom:4px;">🦭 Seal Type</p>
+        <div class="theme-selector-row">
+          <button class="seal-type-btn active" data-seal-type="0">🦭<br>Standard</button>
+          <button class="seal-type-btn" data-seal-type="1">🦭<br>Arctic</button>
+          <button class="seal-type-btn" data-seal-type="2">🦭<br>Brown</button>
+          <button class="seal-type-btn" data-seal-type="3">🦭<br>Spotted</button>
+          <button class="seal-type-btn" data-seal-type="4">🦭<br>Dark</button>
+          <button class="seal-type-btn" data-seal-type="5">🦭<br>Golden</button>
+        </div>
+      </div>
+
+      <!-- Accessory picker -->
+      <div style="text-align:center; margin-top:4px;">
+        <p style="font-size:0.75rem; color:#aaa; margin-bottom:4px;">🎨 Accessory</p>
+        <div class="theme-selector-row" style="justify-content:center; flex-wrap:wrap; gap:4px;">
+          <button class="accessory-btn active" data-accessory="0">—<br>None</button>
+          <button class="accessory-btn" data-accessory="1">🎩<br>Top Hat</button>
+          <button class="accessory-btn" data-accessory="2">👑<br>Crown</button>
+          <button class="accessory-btn" data-accessory="3">👒<br>Sun Hat</button>
+          <button class="accessory-btn" data-accessory="4">🎓<br>Grad Cap</button>
+          <button class="accessory-btn" data-accessory="5">🪖<br>Helmet</button>
+          <button class="accessory-btn" data-accessory="6">👓<br>Glasses</button>
+          <button class="accessory-btn" data-accessory="7">🕶️<br>Sunnies</button>
+          <button class="accessory-btn" data-accessory="8">🎀<br>Bow Tie</button>
+          <button class="accessory-btn" data-accessory="9">🧣<br>Scarf</button>
+        </div>
+        <div style="display:flex; gap:5px; justify-content:center; align-items:center; margin-top:5px;">
+          <span style="font-size:0.72rem; color:#aaa; margin-right:3px;">Colour:</span>
+          <button class="acc-color-btn active" data-acc-color="0" style="background:#888;" title="Default"></button>
+          <button class="acc-color-btn" data-acc-color="1" style="background:#e22;" title="Red"></button>
+          <button class="acc-color-btn" data-acc-color="2" style="background:#36e;" title="Blue"></button>
+          <button class="acc-color-btn" data-acc-color="3" style="background:#3a3;" title="Green"></button>
+          <button class="acc-color-btn" data-acc-color="4" style="background:#a3e;" title="Purple"></button>
+          <button class="acc-color-btn" data-acc-color="5" style="background:#fa0;" title="Gold"></button>
+        </div>
       </div>
 
       <!-- Background theme picker -->
@@ -338,6 +417,7 @@
       <span class="legend-item">🐡 3pts</span>
       <span class="legend-item">🦐 5pts</span>
       <span class="legend-item">🐙 10pts</span>
+      <span class="legend-item" style="color:#ffd700;">🦈 50pts!</span>
       <span class="legend-item" style="color:#aaa; margin-left:8px;">⚡ Speed</span>
       <span class="legend-item" style="color:#aaa;">🔴 Size</span>
       <span class="legend-item" style="color:#aaa;">⭐ 2×pts</span>
@@ -398,7 +478,48 @@
   </div>
 
   <div class="s-section">
-    <h3>🦭 Seal Image</h3>
+    <h3>🦭 Seal Style</h3>
+    <div style="margin-bottom:8px;">
+      <div style="font-size:0.82rem; color:#ccc; margin-bottom:6px;">Seal Type</div>
+      <div class="theme-selector-row" style="justify-content:flex-start; flex-wrap:wrap; gap:4px;">
+        <button class="seal-type-btn active" data-seal-type="0">🦭<br>Standard</button>
+        <button class="seal-type-btn" data-seal-type="1">🦭<br>Arctic</button>
+        <button class="seal-type-btn" data-seal-type="2">🦭<br>Brown</button>
+        <button class="seal-type-btn" data-seal-type="3">🦭<br>Spotted</button>
+        <button class="seal-type-btn" data-seal-type="4">🦭<br>Dark</button>
+        <button class="seal-type-btn" data-seal-type="5">🦭<br>Golden</button>
+      </div>
+    </div>
+    <div style="margin-bottom:8px;">
+      <div style="font-size:0.82rem; color:#ccc; margin-bottom:6px;">Accessory</div>
+      <div class="theme-selector-row" style="justify-content:flex-start; flex-wrap:wrap; gap:4px;">
+        <button class="accessory-btn active" data-accessory="0">—<br>None</button>
+        <button class="accessory-btn" data-accessory="1">🎩<br>Top Hat</button>
+        <button class="accessory-btn" data-accessory="2">👑<br>Crown</button>
+        <button class="accessory-btn" data-accessory="3">👒<br>Sun Hat</button>
+        <button class="accessory-btn" data-accessory="4">🎓<br>Grad Cap</button>
+        <button class="accessory-btn" data-accessory="5">🪖<br>Helmet</button>
+        <button class="accessory-btn" data-accessory="6">👓<br>Glasses</button>
+        <button class="accessory-btn" data-accessory="7">🕶️<br>Sunnies</button>
+        <button class="accessory-btn" data-accessory="8">🎀<br>Bow Tie</button>
+        <button class="accessory-btn" data-accessory="9">🧣<br>Scarf</button>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.82rem; color:#ccc; margin-bottom:6px;">Accessory Colour</div>
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+        <button class="acc-color-btn active" data-acc-color="0" style="background:#888;" title="Default"></button>
+        <button class="acc-color-btn" data-acc-color="1" style="background:#e22;" title="Red"></button>
+        <button class="acc-color-btn" data-acc-color="2" style="background:#36e;" title="Blue"></button>
+        <button class="acc-color-btn" data-acc-color="3" style="background:#3a3;" title="Green"></button>
+        <button class="acc-color-btn" data-acc-color="4" style="background:#a3e;" title="Purple"></button>
+        <button class="acc-color-btn" data-acc-color="5" style="background:#fa0;" title="Gold"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="s-section">
+    <h3>🦭 Seal Custom Image</h3>
     <div class="s-row">
       <label class="s-label">Seal sprite:</label>
       <div class="sprite-preview" id="prev-seal">🦭</div>
@@ -444,6 +565,13 @@
       <label class="file-btn" for="img-fish-4">Choose Image</label>
       <input type="file" id="img-fish-4" accept="image/*">
       <button class="file-btn" data-reset="fish-4">Reset</button>
+    </div>
+    <div class="s-row">
+      <label class="s-label">🦈 Baby Shark (50pts):</label>
+      <div class="sprite-preview" id="prev-fish-5">🦈</div>
+      <label class="file-btn" for="img-fish-5">Choose Image</label>
+      <input type="file" id="img-fish-5" accept="image/*">
+      <button class="file-btn" data-reset="fish-5">Reset</button>
     </div>
   </div>
 

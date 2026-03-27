@@ -14,11 +14,12 @@ const MAGNET_RANGE           = 130;
 const PARTICLE_LIFETIME = 700; // ms
 
 const FISH_TYPES = [
-  { name: 'Minnow',    emoji: '🐟', w: 24,  h: 16,  points: 1,  speed: 3.0, weight: 35 },
-  { name: 'Clownfish', emoji: '🐠', w: 38,  h: 26,  points: 2,  speed: 2.3, weight: 28 },
-  { name: 'Pufferfish',emoji: '🐡', w: 50,  h: 38,  points: 3,  speed: 1.6, weight: 20 },
-  { name: 'Prawn',     emoji: '🦐', w: 60,  h: 42,  points: 5,  speed: 2.8, weight: 12 },
-  { name: 'Octopus',   emoji: '🐙', w: 76,  h: 58,  points: 10, speed: 1.1, weight: 5  },
+  { name: 'Minnow',     emoji: '🐟', w: 24,  h: 16,  points: 1,  speed: 3.0, weight: 35 },
+  { name: 'Clownfish',  emoji: '🐠', w: 38,  h: 26,  points: 2,  speed: 2.3, weight: 28 },
+  { name: 'Pufferfish', emoji: '🐡', w: 50,  h: 38,  points: 3,  speed: 1.6, weight: 20 },
+  { name: 'Prawn',      emoji: '🦐', w: 60,  h: 42,  points: 5,  speed: 2.8, weight: 12 },
+  { name: 'Octopus',    emoji: '🐙', w: 76,  h: 58,  points: 10, speed: 1.1, weight: 5  },
+  { name: 'Baby Shark', emoji: '🦈', w: 90,  h: 60,  points: 50, speed: 3.8, weight: 1  },
 ];
 
 const POWERUP_TYPES = [
@@ -26,6 +27,37 @@ const POWERUP_TYPES = [
   { name: 'Size Up',     emoji: '🔴', color: '#ff7777', duration: 5000, weight: 30, effect: 'sizeUp' },
   { name: '2× Points',   emoji: '⭐', color: '#ffd700', duration: 6000, weight: 25, effect: 'double' },
   { name: 'Magnet',      emoji: '🧲', color: '#cc88ff', duration: 5000, weight: 10, effect: 'magnet' },
+];
+
+const SEAL_TYPES = [
+  { name: 'Standard', filter: '' },
+  { name: 'Arctic',   filter: 'brightness(1.9) saturate(0.05)' },
+  { name: 'Brown',    filter: 'sepia(1) saturate(1.8) brightness(0.9)' },
+  { name: 'Spotted',  filter: 'hue-rotate(200deg) saturate(1.5)' },
+  { name: 'Dark',     filter: 'brightness(0.35) saturate(0.5)' },
+  { name: 'Golden',   filter: 'sepia(1) brightness(1.4) saturate(2.5)' },
+];
+
+const ACCESSORIES = [
+  { name: 'None',        emoji: null,  region: null   },
+  { name: 'Top Hat',     emoji: '🎩',  region: 'head' },
+  { name: 'Crown',       emoji: '👑',  region: 'head' },
+  { name: 'Sun Hat',     emoji: '👒',  region: 'head' },
+  { name: 'Grad Cap',    emoji: '🎓',  region: 'head' },
+  { name: 'Helmet',      emoji: '🪖',  region: 'head' },
+  { name: 'Glasses',     emoji: '👓',  region: 'face' },
+  { name: 'Sunglasses',  emoji: '🕶️', region: 'face' },
+  { name: 'Bow Tie',     emoji: '🎀',  region: 'body' },
+  { name: 'Scarf',       emoji: '🧣',  region: 'body' },
+];
+
+const ACCESSORY_COLORS = [
+  { name: 'Default', filter: '' },
+  { name: 'Red',     filter: 'hue-rotate(340deg) saturate(3)' },
+  { name: 'Blue',    filter: 'hue-rotate(200deg) saturate(3)' },
+  { name: 'Green',   filter: 'hue-rotate(110deg) saturate(3)' },
+  { name: 'Purple',  filter: 'hue-rotate(270deg) saturate(3)' },
+  { name: 'Gold',    filter: 'sepia(1) brightness(1.5) saturate(3)' },
 ];
 
 const THEMES = [
@@ -59,9 +91,12 @@ const seal = {
   w: 64, h: 48,
   facing: 1,    // 1 = right, -1 = left
   img: null,
+  type: 0,           // index into SEAL_TYPES
+  accessory: 0,      // index into ACCESSORIES (0 = none)
+  accessoryColor: 0, // index into ACCESSORY_COLORS
 };
 
-const fishImages = [null, null, null, null, null];
+const fishImages = Array(FISH_TYPES.length).fill(null); // one entry per FISH_TYPES entry
 
 let currentTheme  = 0;
 let bgCustomImage = null;
@@ -478,13 +513,14 @@ function drawLavaBg() {
   ctx.restore();
 }
 
-function drawSprite(img, emoji, x, y, w, h, flipH) {
+function drawSprite(img, emoji, x, y, w, h, flipH, filter) {
   ctx.save();
   if (flipH) {
     ctx.translate(x + w/2, y + h/2);
     ctx.scale(-1, 1);
     ctx.translate(-(x + w/2), -(y + h/2));
   }
+  if (filter) ctx.filter = filter;
   if (img) {
     ctx.drawImage(img, x, y, w, h);
   } else {
@@ -496,8 +532,40 @@ function drawSprite(img, emoji, x, y, w, h, flipH) {
   ctx.restore();
 }
 
+function drawAccessory(acc, colorFilter) {
+  const aw = seal.w * 0.65;
+  let ax = seal.x + (seal.w - aw) / 2;
+  let ay;
+  switch (acc.region) {
+    case 'head': ay = seal.y - aw * 0.45; break;
+    case 'face': ay = seal.y + seal.h * 0.05; break;
+    default:     ay = seal.y + seal.h * 0.38; break; // body
+  }
+  ctx.save();
+  if (seal.facing === -1) {
+    ctx.translate(seal.x + seal.w / 2, seal.y + seal.h / 2);
+    ctx.scale(-1, 1);
+    ctx.translate(-(seal.x + seal.w / 2), -(seal.y + seal.h / 2));
+  }
+  if (colorFilter) ctx.filter = colorFilter;
+  ctx.font = `${aw * 0.85}px serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  ctx.fillText(acc.emoji, ax + aw / 2, ay + aw / 2);
+  ctx.restore();
+}
+
 function drawSeal() {
-  drawSprite(seal.img, '🦭', seal.x, seal.y, seal.w, seal.h, seal.facing === -1);
+  const sealType = SEAL_TYPES[seal.type] || SEAL_TYPES[0];
+  // Custom images are drawn without the seal-type filter so the user's
+  // artwork is not unintentionally recoloured; filters apply to the emoji only.
+  const filter = seal.img ? '' : sealType.filter;
+  drawSprite(seal.img, '🦭', seal.x, seal.y, seal.w, seal.h, seal.facing === -1, filter);
+  const acc = ACCESSORIES[seal.accessory];
+  if (acc && acc.emoji) {
+    const accColor = ACCESSORY_COLORS[seal.accessoryColor] || ACCESSORY_COLORS[0];
+    drawAccessory(acc, accColor.filter);
+  }
 }
 
 function drawFishes() {
@@ -783,7 +851,7 @@ document.getElementById('img-seal').addEventListener('change', function () {
   });
 });
 
-for (let i = 0; i < 5; i++) {
+for (let i = 0; i < FISH_TYPES.length; i++) {
   const idx = i;
   document.getElementById(`img-fish-${i}`).addEventListener('change', function () {
     if (!this.files[0]) return;
@@ -838,8 +906,60 @@ document.getElementById('settings-backdrop').addEventListener('click', closeSett
 document.getElementById('play-again-btn').addEventListener('click', startGame);
 document.getElementById('menu-btn').addEventListener('click', showMenu);
 
+/* ── Seal type selection ── */
+function selectSealType(idx) {
+  seal.type = idx;
+  updateSealTypeUI();
+}
+
+function updateSealTypeUI() {
+  document.querySelectorAll('.seal-type-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.sealType, 10) === seal.type);
+  });
+}
+
+document.querySelectorAll('.seal-type-btn').forEach(btn => {
+  btn.addEventListener('click', () => selectSealType(parseInt(btn.dataset.sealType, 10)));
+});
+
+/* ── Accessory selection ── */
+function selectAccessory(idx) {
+  seal.accessory = idx;
+  updateAccessoryUI();
+}
+
+function updateAccessoryUI() {
+  document.querySelectorAll('.accessory-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.accessory, 10) === seal.accessory);
+  });
+}
+
+document.querySelectorAll('.accessory-btn').forEach(btn => {
+  btn.addEventListener('click', () => selectAccessory(parseInt(btn.dataset.accessory, 10)));
+});
+
+/* ── Accessory colour selection ── */
+function selectAccessoryColor(idx) {
+  seal.accessoryColor = idx;
+  updateAccessoryColorUI();
+}
+
+function updateAccessoryColorUI() {
+  document.querySelectorAll('.acc-color-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.accColor, 10) === seal.accessoryColor);
+  });
+}
+
+document.querySelectorAll('.acc-color-btn').forEach(btn => {
+  btn.addEventListener('click', () => selectAccessoryColor(parseInt(btn.dataset.accColor, 10)));
+});
+
 /* ═══════════════════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════════════════ */
 document.getElementById('highscore').textContent = highScore;
 updateTimerEl();
+showMenu();
+updateSealTypeUI();
+updateAccessoryUI();
+updateAccessoryColorUI();
