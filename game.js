@@ -17,6 +17,15 @@ const FISH_TYPES = [
   { name: 'Octopus',   emoji: '🐙', w: 76,  h: 58,  points: 10, speed: 1.1, weight: 5  },
 ];
 
+const THEMES = [
+  { name: 'Ocean',    emoji: '🌊', body: '#0d1b2a', draw: drawOceanBg },
+  { name: 'Coral',    emoji: '🪸', body: '#1a0810', draw: drawCoralBg },
+  { name: 'Deep Sea', emoji: '🌑', body: '#000005', draw: drawDeepSeaBg },
+  { name: 'Arctic',   emoji: '🧊', body: '#7eafc9', draw: drawArcticBg },
+  { name: 'Lava',     emoji: '🌋', body: '#1a0000', draw: drawLavaBg },
+  { name: 'Custom',   emoji: '📁', body: '#0d1b2a', draw: null },
+];
+
 /* ═══════════════════════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════════════════════ */
@@ -42,6 +51,9 @@ const seal = {
 };
 
 const fishImages = [null, null, null, null, null];
+
+let currentTheme  = 0;
+let bgCustomImage = null;
 
 let fishes    = [];
 let particles = [];
@@ -196,6 +208,19 @@ function addCatchLog(msg) {
    RENDER
 ═══════════════════════════════════════════════════════════ */
 function drawBackground() {
+  if (currentTheme === 5) {
+    if (bgCustomImage) {
+      ctx.drawImage(bgCustomImage, 0, 0, W, H);
+    } else {
+      drawOceanBg();
+    }
+    return;
+  }
+  const theme = THEMES[currentTheme] || THEMES[0];
+  if (theme.draw) theme.draw();
+}
+
+function drawOceanBg() {
   const grad = ctx.createLinearGradient(0, 0, 0, H);
   grad.addColorStop(0, '#0096c7');
   grad.addColorStop(1, '#03045e');
@@ -227,6 +252,132 @@ function drawBackground() {
     const by = (i * 101 + Math.cos(Date.now()*0.0008 + i) * 25) % H;
     ctx.beginPath();
     ctx.arc(bx, by, 2.5 + Math.sin(i*0.7), 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawCoralBg() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#f4511e');
+  grad.addColorStop(1, '#6a0572');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  const t = Date.now() * 0.0003;
+  // Warm light rays
+  ctx.save();
+  ctx.globalAlpha = 0.06;
+  ctx.fillStyle = '#ffaa44';
+  for (let i = 0; i < 5; i++) {
+    const bx = ((i * 180 + t * 50) % (W + 100)) - 50;
+    ctx.beginPath();
+    ctx.moveTo(bx, 0);
+    ctx.lineTo(bx + 50, H);
+    ctx.lineTo(bx + 90, H);
+    ctx.lineTo(bx + 40, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Colorful bubbles
+  ctx.save();
+  const bubbleColors = ['rgba(255,100,100,0.15)', 'rgba(255,200,50,0.12)', 'rgba(200,100,255,0.12)'];
+  for (let i = 0; i < 20; i++) {
+    const bx = ((i * 52 + Math.sin(Date.now() * 0.0012 + i) * 20) % W + W) % W;
+    const by = ((i * 89 + Math.cos(Date.now() * 0.0009 + i) * 22) % H + H) % H;
+    ctx.fillStyle = bubbleColors[i % bubbleColors.length];
+    ctx.beginPath();
+    ctx.arc(bx, by, 3 + Math.sin(i * 0.8), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawDeepSeaBg() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#050517');
+  grad.addColorStop(1, '#000000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  const t = Date.now() * 0.001;
+  ctx.save();
+  ctx.shadowBlur = 8;
+  const bioColors = ['#00ff88', '#0088ff', '#88ffcc'];
+  for (let i = 0; i < 25; i++) {
+    const bx = ((i * 43 + Math.sin(t * 0.4 + i) * 15) % W + W) % W;
+    const by = ((i * 77 + Math.cos(t * 0.3 + i) * 20) % H + H) % H;
+    const glow = 0.3 + 0.3 * Math.sin(t * 2 + i * 1.3);
+    ctx.globalAlpha = glow;
+    const col = bioColors[i % bioColors.length];
+    ctx.fillStyle = col;
+    ctx.shadowColor = col;
+    ctx.beginPath();
+    ctx.arc(bx, by, 1.5 + Math.abs(Math.sin(i * 0.9)) * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawArcticBg() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#90e0ef');
+  grad.addColorStop(1, '#023e8a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  const t = Date.now() * 0.001;
+  ctx.save();
+  // Drifting snowflakes
+  for (let i = 0; i < 22; i++) {
+    const bx = ((i * 53 + Math.sin(t * 0.5 + i) * 25) % W + W) % W;
+    const speed = 0.5 + (i % 3) * 0.5;
+    const by = ((i * 89 + t * 15 * speed) % H + H) % H;
+    ctx.globalAlpha = 0.4 + 0.3 * Math.sin(t + i);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath();
+    ctx.arc(bx, by, 1.5 + Math.sin(i * 1.1) * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Ice shimmer rays
+  ctx.globalAlpha = 0.04;
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < 4; i++) {
+    const bx = ((i * 220 + t * 40) % (W + 100)) - 50;
+    ctx.beginPath();
+    ctx.moveTo(bx, 0);
+    ctx.lineTo(bx + 30, H);
+    ctx.lineTo(bx + 60, H);
+    ctx.lineTo(bx + 30, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawLavaBg() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#cc3300');
+  grad.addColorStop(1, '#1a0000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  const t = Date.now() * 0.001;
+  ctx.save();
+  ctx.shadowBlur = 6;
+  const emberColors = ['#ff6600', '#ffcc00', '#ff3300'];
+  for (let i = 0; i < 20; i++) {
+    const bx = ((i * 51 + Math.sin(t * 0.6 + i) * 18) % W + W) % W;
+    const by = H - ((i * 73 + t * 25) % H);
+    const glow = 0.4 + 0.4 * Math.sin(t * 3 + i * 1.7);
+    ctx.globalAlpha = glow;
+    const col = emberColors[i % emberColors.length];
+    ctx.fillStyle = col;
+    ctx.shadowColor = '#ff4400';
+    ctx.beginPath();
+    ctx.arc(bx, by, 1 + Math.abs(Math.sin(i * 1.3)) * 0.7, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -411,6 +562,32 @@ function closeSettings() {
   document.getElementById('settings-backdrop').style.display = 'none';
 }
 
+/* ═══════════════════════════════════════════════════════════
+   THEME
+═══════════════════════════════════════════════════════════ */
+function selectTheme(idx) {
+  if (idx === 5) {
+    // Trigger custom image upload; theme changes only if file is selected
+    document.getElementById('bg-upload').click();
+    return;
+  }
+  currentTheme = idx;
+  updateThemeUI();
+  updateBodyBg();
+}
+
+function updateThemeUI() {
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    const t = parseInt(btn.dataset.theme, 10);
+    btn.classList.toggle('active', t === currentTheme);
+  });
+}
+
+function updateBodyBg() {
+  const theme = THEMES[currentTheme] || THEMES[0];
+  document.body.style.background = theme.body;
+}
+
 function applySettings() {
   const val = parseInt(document.getElementById('s-duration').value, 10);
   if (!isNaN(val) && val >= 10 && val <= 600) {
@@ -471,6 +648,23 @@ document.querySelectorAll('[data-reset]').forEach(btn => {
       document.getElementById(`prev-fish-${idx}`).textContent = FISH_TYPES[idx].emoji;
       document.getElementById(`img-fish-${idx}`).value = '';
     }
+  });
+});
+
+/* theme selection */
+document.querySelectorAll('.theme-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectTheme(parseInt(btn.dataset.theme, 10));
+  });
+});
+
+document.getElementById('bg-upload').addEventListener('change', function () {
+  if (!this.files[0]) return;
+  loadImageFromFile(this.files[0], (img) => {
+    bgCustomImage = img;
+    currentTheme = 5;
+    updateThemeUI();
+    updateBodyBg();
   });
 });
 

@@ -208,6 +208,40 @@
 
     /* ── High score badge ── */
     #highscore-display { color: #c77dff; }
+
+    /* ── Theme selector ── */
+    .theme-selector-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .theme-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 5px 8px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      gap: 3px;
+      transition: border-color 0.15s, background 0.15s;
+      min-width: 62px;
+    }
+    .theme-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); }
+    .theme-btn.active { border-color: #4a9eff; background: rgba(74,158,255,0.2); }
+
+    .theme-swatch {
+      width: 44px;
+      height: 16px;
+      border-radius: 3px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
   </style>
 </head>
 <body>
@@ -241,6 +275,38 @@
         <span class="legend-item">🦐 Prawn = 5pts</span>
         <span class="legend-item">🐙 Octopus = 10pts</span>
       </div>
+
+      <!-- Background theme picker -->
+      <div style="text-align:center; margin-top:4px;">
+        <p style="font-size:0.78rem; color:#aaa; margin-bottom:5px;">🎨 Background Theme</p>
+        <div class="theme-selector-row">
+          <button class="theme-btn active" data-theme="0">
+            <span class="theme-swatch" style="background:linear-gradient(to bottom,#0096c7,#03045e)"></span>
+            🌊 Ocean
+          </button>
+          <button class="theme-btn" data-theme="1">
+            <span class="theme-swatch" style="background:linear-gradient(to bottom,#f4511e,#6a0572)"></span>
+            🪸 Coral
+          </button>
+          <button class="theme-btn" data-theme="2">
+            <span class="theme-swatch" style="background:linear-gradient(to bottom,#050517,#000000)"></span>
+            🌑 Deep Sea
+          </button>
+          <button class="theme-btn" data-theme="3">
+            <span class="theme-swatch" style="background:linear-gradient(to bottom,#90e0ef,#023e8a)"></span>
+            🧊 Arctic
+          </button>
+          <button class="theme-btn" data-theme="4">
+            <span class="theme-swatch" style="background:linear-gradient(to bottom,#cc3300,#1a0000)"></span>
+            🌋 Lava
+          </button>
+          <button class="theme-btn" data-theme="5">
+            <span class="theme-swatch" style="background:#333; border-style:dashed;">📁</span>
+            Custom
+          </button>
+        </div>
+      </div>
+
       <div style="display:flex;gap:10px;margin-top:6px;">
         <button class="btn" id="start-btn">▶ Start Game</button>
         <button class="btn ghost" id="open-settings-start">⚙ Settings</button>
@@ -275,9 +341,42 @@
 <!-- Settings backdrop -->
 <div id="settings-backdrop"></div>
 
+<!-- Hidden file input for custom background -->
+<input type="file" id="bg-upload" accept="image/*" style="display:none;">
+
 <!-- Settings panel -->
 <div id="settings-panel">
   <h2>⚙ Game Settings</h2>
+
+  <div class="s-section">
+    <h3>🎨 Background Theme</h3>
+    <div class="theme-selector-row">
+      <button class="theme-btn active" data-theme="0">
+        <span class="theme-swatch" style="background:linear-gradient(to bottom,#0096c7,#03045e)"></span>
+        🌊 Ocean
+      </button>
+      <button class="theme-btn" data-theme="1">
+        <span class="theme-swatch" style="background:linear-gradient(to bottom,#f4511e,#6a0572)"></span>
+        🪸 Coral
+      </button>
+      <button class="theme-btn" data-theme="2">
+        <span class="theme-swatch" style="background:linear-gradient(to bottom,#050517,#000000)"></span>
+        🌑 Deep Sea
+      </button>
+      <button class="theme-btn" data-theme="3">
+        <span class="theme-swatch" style="background:linear-gradient(to bottom,#90e0ef,#023e8a)"></span>
+        🧊 Arctic
+      </button>
+      <button class="theme-btn" data-theme="4">
+        <span class="theme-swatch" style="background:linear-gradient(to bottom,#cc3300,#1a0000)"></span>
+        🌋 Lava
+      </button>
+      <button class="theme-btn" data-theme="5">
+        <span class="theme-swatch" style="background:#333; border-style:dashed;">📁</span>
+        Custom
+      </button>
+    </div>
+  </div>
 
   <div class="s-section">
     <h3>⏱ Timer</h3>
