@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🦭 Seal Fishing Game</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0d1b2a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+    }
+
+    #game-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+    }
+
+    /* ── HUD ── */
+    #hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 800px;
+      padding: 8px 20px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(74,158,255,0.4);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    #score-display  { color: #ffd700; }
+    #caught-display { color: #90e0ef; }
+    #timer-display  { color: #ffd700; transition: color 0.3s; }
+    #timer-display.warning { color: #ff6b6b; animation: pulse 0.7s infinite alternate; }
+    #timer-display.danger  { color: #ff0000; animation: pulse 0.4s infinite alternate; }
+
+    @keyframes pulse {
+      from { opacity: 1; }
+      to   { opacity: 0.4; }
+    }
+
+    /* ── Canvas container ── */
+    #canvas-container { position: relative; }
+
+    #game-canvas {
+      display: block;
+      border: 3px solid #4a9eff;
+      border-radius: 8px;
+      cursor: none;
+    }
+
+    /* ── Overlays ── */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 6px;
+      color: #fff;
+      gap: 10px;
+    }
+
+    .overlay h1 { font-size: 2.6rem; }
+    .overlay p  { font-size: 1rem; color: #ccc; text-align: center; line-height: 1.6; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 11px 28px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #4a9eff;
+      color: #fff;
+      font-weight: 700;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:hover   { background: #2477cc; transform: scale(1.04); }
+    .btn.ghost   { background: rgba(255,255,255,0.12); }
+    .btn.ghost:hover { background: rgba(255,255,255,0.22); }
+
+    /* ── Legend row ── */
+    #legend-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 800px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+
+    /* ── Catch log ── */
+    #catch-log {
+      font-size: 0.78rem;
+      color: #90e0ef;
+      max-width: 300px;
+      text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Settings backdrop + panel ── */
+    #settings-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 900;
+      display: none;
+    }
+
+    #settings-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #111827;
+      border: 2px solid #4a9eff;
+      border-radius: 14px;
+      padding: 26px 30px;
+      color: #fff;
+      z-index: 950;
+      width: 560px;
+      max-height: 85vh;
+      overflow-y: auto;
+      display: none;
+    }
+
+    #settings-panel h2 {
+      color: #4a9eff;
+      font-size: 1.4rem;
+      margin-bottom: 18px;
+    }
+
+    .s-section { margin-bottom: 20px; }
+    .s-section h3 { color: #ffd700; font-size: 0.9rem; text-transform: uppercase;
+                    letter-spacing: 0.06em; margin-bottom: 10px; }
+
+    .s-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .s-row label.s-label { min-width: 160px; font-size: 0.88rem; color: #ccc; }
+
+    input[type="number"] {
+      background: #1f2937;
+      border: 1px solid #4a9eff;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 6px;
+      width: 80px;
+      font-size: 0.9rem;
+    }
+
+    input[type="file"] { display: none; }
+
+    .file-btn {
+      padding: 4px 14px;
+      background: #1f2937;
+      border: 1px solid #4a9eff;
+      color: #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+    .file-btn:hover { background: #2a3a50; color: #fff; }
+
+    .sprite-preview {
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      border: 1px solid #4a9eff;
+      border-radius: 6px;
+      background: #0077b6;
+      overflow: hidden;
+    }
+    .sprite-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .s-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px; }
+
+    /* ── High score badge ── */
+    #highscore-display { color: #c77dff; }
+  </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+
+  <!-- HUD -->
+  <div id="hud">
+    <span id="score-display">🎯 Score: <strong id="score">0</strong></span>
+    <span id="caught-display">🐟 Caught: <strong id="caught">0</strong></span>
+    <span id="timer-display">⏱ <strong id="timer">2:00</strong></span>
+    <span id="highscore-display">🏆 Best: <strong id="highscore">0</strong></span>
+    <button class="btn ghost" id="settings-btn">⚙ Settings</button>
+  </div>
+
+  <!-- Canvas -->
+  <div id="canvas-container">
+    <canvas id="game-canvas" width="800" height="500"></canvas>
+
+    <!-- Start Screen -->
+    <div class="overlay" id="start-screen">
+      <h1>🦭 Seal Fishing</h1>
+      <p>
+        Use <strong>← ↑ → ↓</strong> arrow keys to swim your seal.<br>
+        Catch fish before the timer runs out!
+      </p>
+      <div class="legend" style="justify-content:center; margin-top:4px;">
+        <span class="legend-item">🐟 Minnow = 1pt</span>
+        <span class="legend-item">🐠 Clownfish = 2pts</span>
+        <span class="legend-item">🐡 Pufferfish = 3pts</span>
+        <span class="legend-item">🦐 Prawn = 5pts</span>
+        <span class="legend-item">🐙 Octopus = 10pts</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button class="btn" id="start-btn">▶ Start Game</button>
+        <button class="btn ghost" id="open-settings-start">⚙ Settings</button>
+      </div>
+    </div>
+
+    <!-- End Screen -->
+    <div class="overlay" id="end-screen" style="display:none;">
+      <h1 id="end-title">🏆 Time's Up!</h1>
+      <p id="end-message"></p>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button class="btn" id="play-again-btn">▶ Play Again</button>
+        <button class="btn ghost" id="menu-btn">🏠 Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend + catch log -->
+  <div id="legend-row">
+    <div class="legend">
+      <span class="legend-item">🐟 1pt</span>
+      <span class="legend-item">🐠 2pts</span>
+      <span class="legend-item">🐡 3pts</span>
+      <span class="legend-item">🦐 5pts</span>
+      <span class="legend-item">🐙 10pts</span>
+    </div>
+    <div id="catch-log"></div>
+  </div>
+
+</div>
+
+<!-- Settings backdrop -->
+<div id="settings-backdrop"></div>
+
+<!-- Settings panel -->
+<div id="settings-panel">
+  <h2>⚙ Game Settings</h2>
+
+  <div class="s-section">
+    <h3>⏱ Timer</h3>
+    <div class="s-row">
+      <label class="s-label" for="s-duration">Duration (seconds):</label>
+      <input type="number" id="s-duration" min="10" max="600" value="120">
+      <span id="s-duration-label">= 2:00</span>
+    </div>
+  </div>
+
+  <div class="s-section">
+    <h3>🦭 Seal Image</h3>
+    <div class="s-row">
+      <label class="s-label">Seal sprite:</label>
+      <div class="sprite-preview" id="prev-seal">🦭</div>
+      <label class="file-btn" for="img-seal">Choose Image</label>
+      <input type="file" id="img-seal" accept="image/*">
+      <button class="file-btn" data-reset="seal">Reset</button>
+    </div>
+  </div>
+
+  <div class="s-section">
+    <h3>🐟 Fish Images</h3>
+    <div class="s-row">
+      <label class="s-label">🐟 Minnow (1pt):</label>
+      <div class="sprite-preview" id="prev-fish-0">🐟</div>
+      <label class="file-btn" for="img-fish-0">Choose Image</label>
+      <input type="file" id="img-fish-0" accept="image/*">
+      <button class="file-btn" data-reset="fish-0">Reset</button>
+    </div>
+    <div class="s-row">
+      <label class="s-label">🐠 Clownfish (2pts):</label>
+      <div class="sprite-preview" id="prev-fish-1">🐠</div>
+      <label class="file-btn" for="img-fish-1">Choose Image</label>
+      <input type="file" id="img-fish-1" accept="image/*">
+      <button class="file-btn" data-reset="fish-1">Reset</button>
+    </div>
+    <div class="s-row">
+      <label class="s-label">🐡 Pufferfish (3pts):</label>
+      <div class="sprite-preview" id="prev-fish-2">🐡</div>
+      <label class="file-btn" for="img-fish-2">Choose Image</label>
+      <input type="file" id="img-fish-2" accept="image/*">
+      <button class="file-btn" data-reset="fish-2">Reset</button>
+    </div>
+    <div class="s-row">
+      <label class="s-label">🦐 Prawn (5pts):</label>
+      <div class="sprite-preview" id="prev-fish-3">🦐</div>
+      <label class="file-btn" for="img-fish-3">Choose Image</label>
+      <input type="file" id="img-fish-3" accept="image/*">
+      <button class="file-btn" data-reset="fish-3">Reset</button>
+    </div>
+    <div class="s-row">
+      <label class="s-label">🐙 Octopus (10pts):</label>
+      <div class="sprite-preview" id="prev-fish-4">🐙</div>
+      <label class="file-btn" for="img-fish-4">Choose Image</label>
+      <input type="file" id="img-fish-4" accept="image/*">
+      <button class="file-btn" data-reset="fish-4">Reset</button>
+    </div>
+  </div>
+
+  <div class="s-footer">
+    <button class="btn" id="s-apply">✅ Apply</button>
+    <button class="btn ghost" id="s-close">✖ Close</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
